@@ -1,0 +1,19 @@
+# Ignore data and models
+data/*
+!data/raw_data_placeholder.txt
+
+models/
+__pycache__/
+*.h5
+*.pkl
+
+# Environment files
+*.env
+.env/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Logs and outputs
+logs/
+*.log
