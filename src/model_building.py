@@ -25,3 +25,4 @@ history = model.fit(X_train, y_train,
 
 model.save('E-commerce_churn/models/churn_model.h5')
 print('Model training complete and saved')
+
