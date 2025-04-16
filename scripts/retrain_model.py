@@ -23,7 +23,7 @@ def preprocess_data(df):
 
 
 # Load new data
-data_path = 'E-commerce_churn/data/latest_customer_data.csv'
+data_path = 'data/latest_customer_data.csv'
 df = pd.read_csv(data_path)
 
 # Preprocess the data

@@ -10,6 +10,20 @@ import sys
 import time
 import logging
 
+def ensure_directories():
+    """Ensure required directories exist"""
+    directories = [
+        'data', 'data/raw', 'data/processed', 
+        'models', 'logs'
+    ]
+    for directory in directories:
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+            print(f"Created directory: {directory}")
+
+# Create directories first, before setting up logging
+ensure_directories()
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -21,17 +35,6 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger("ChurnPipeline")
-
-def ensure_directories():
-    """Ensure required directories exist"""
-    directories = [
-        'data', 'data/raw', 'data/processed', 
-        'models', 'logs'
-    ]
-    for directory in directories:
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-            logger.info(f"Created directory: {directory}")
 
 def run_step(step_name, script_path):
     """Run a pipeline step and log its execution"""
@@ -51,9 +54,6 @@ def run_step(step_name, script_path):
 
 def main():
     """Run the full data pipeline"""
-    # Ensure directories exist
-    ensure_directories()
-    
     # Define pipeline steps
     pipeline_steps = [
         ("Data Preprocessing", "src/preprocessing.py"),
