@@ -5,7 +5,6 @@ import tensorflow as tf
 import os
 import json
 import pickle
-import tensorflow as tf
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -17,9 +16,15 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 h5_model_path = os.path.join(current_dir, 'models', 'churn_model.h5')
 pkl_model_path = os.path.join(current_dir, 'models', 'churn_model_info.pkl')
 
-
-# Global model variable
+# Global model and feature variables
 model = None
+REQUIRED_FEATURES = [
+    'Tenure', 'WarehouseToHome', 'HourSpendOnApp', 'NumberOfDeviceRegistered',
+    'SatisfactionScore', 'NumberOfAddress', 'Complain', 'OrderAmountHikeFromlastYear',
+    'CouponUsed', 'OrderCount', 'DaySinceLastOrder', 'CashbackAmount',
+    'PreferedOrderCat_Fashion', 'PreferedOrderCat_Grocery', 'PreferedOrderCat_Mobile',
+    'MaritalStatus_Married', 'MaritalStatus_Single'
+]
 
 def load_model():
     """Load the trained TensorFlow model"""
@@ -48,39 +53,24 @@ def load_model():
         print(f"Error loading model: {str(e)}")
         return False
 
-
-    
-
-
-
-# Feature list required for prediction
-REQUIRED_FEATURES = [
-    'Tenure', 'WarehouseToHome', 'HourSpendOnApp', 'NumberOfDeviceRegistered',
-    'SatisfactionScore', 'NumberOfAddress', 'Complain', 'OrderAmountHikeFromlastYear',
-    'CouponUsed', 'OrderCount', 'DaySinceLastOrder', 'CashbackAmount',
-    'PreferedOrderCat_Fashion', 'PreferedOrderCat_Grocery', 'PreferedOrderCat_Mobile',
-    'MaritalStatus_Married', 'MaritalStatus_Single'
-]
-
-if __name__ == '__main__':
-    model_loaded = load_model()
-    
-    # Get and print input shape safely
-    if model_loaded and model is not None:
-        input_shape = model.input_shape
-        print(f"Model expects input shape: {input_shape}")
+def get_model_input_features():
+    """Determine the exact feature list required by the model"""
+    if model is None:
+        return None
         
-        # Check if number of input features matches REQUIRED_FEATURES
-        expected_features = input_shape[1] if len(input_shape) > 1 else None
-        if expected_features and expected_features != len(REQUIRED_FEATURES):
-            print(f"⚠️ WARNING: Model expects {expected_features} features but REQUIRED_FEATURES has {len(REQUIRED_FEATURES)}.")
-        else:
-            print("✅ Feature count matches model input shape.")
-    else:
-        print("❌ Model is not loaded. Cannot determine input shape.")
-
-    # Run the app
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    input_shape = model.input_shape
+    expected_features = input_shape[1] if len(input_shape) > 1 else None
+    print(f"Model expects {expected_features} input features")
+    
+    # Now let's attempt to determine what these features are by looking at training data
+    try:
+        train_data = pd.read_csv('data/X_train.csv')
+        feature_columns = train_data.columns.tolist()
+        print(f"Training data has {len(feature_columns)} features: {feature_columns}")
+        return feature_columns
+    except Exception as e:
+        print(f"Could not determine feature columns from training data: {str(e)}")
+        return None
 
 @app.route('/', methods=['GET'])
 def home():
@@ -108,26 +98,18 @@ def health():
 @app.route('/sample', methods=['GET'])
 def sample():
     """Return a sample input for testing the prediction endpoint"""
-    sample_data = {
-        'Tenure': 0.5,
-        'WarehouseToHome': 0.3,
-        'HourSpendOnApp': 2.5,
-        'NumberOfDeviceRegistered': 3,
-        'SatisfactionScore': 4,
-        'NumberOfAddress': 2,
-        'Complain': 0,
-        'OrderAmountHikeFromlastYear': 0.15,
-        'CouponUsed': 2,
-        'OrderCount': 5,
-        'DaySinceLastOrder': 0.2,
-        'CashbackAmount': 0.1,
-        'PreferedOrderCat_Fashion': 1,
-        'PreferedOrderCat_Grocery': 0,
-        'PreferedOrderCat_Mobile': 0,
-        'MaritalStatus_Married': 1,
-        'MaritalStatus_Single': 0
-    }
-    
+    sample_data = {}
+    for feature in REQUIRED_FEATURES:
+        # Generate reasonable sample values
+        if feature.startswith('PreferedOrderCat_') or feature.startswith('MaritalStatus_'):
+            sample_data[feature] = 1 if feature.endswith('_Fashion') or feature.endswith('_Married') else 0
+        elif feature == 'Complain':
+            sample_data[feature] = 0
+        elif feature in ['NumberOfDeviceRegistered', 'SatisfactionScore', 'NumberOfAddress', 'CouponUsed', 'OrderCount']:
+            sample_data[feature] = 2
+        else:
+            sample_data[feature] = 0.5
+            
     return jsonify({
         'status': 'success',
         'sample_data': sample_data,
@@ -137,6 +119,8 @@ def sample():
 @app.route('/predict', methods=['POST'])
 def predict():
     """Make churn predictions based on input data"""
+    global REQUIRED_FEATURES
+    
     try:
         # Ensure model is loaded
         if model is None:
@@ -161,6 +145,24 @@ def predict():
         # Convert to DataFrame
         features_df = pd.DataFrame([input_data])
         
+        # Check if we need to adjust features based on model input shape
+        expected_features = model.input_shape[1] if len(model.input_shape) > 1 else None
+        
+        if expected_features is not None and expected_features != len(REQUIRED_FEATURES):
+            # We need to adjust features to match the model
+            if expected_features < len(REQUIRED_FEATURES):
+                # Try to use training data to identify correct features
+                model_features = get_model_input_features()
+                if model_features:
+                    # Use only the features the model expects
+                    features_df = features_df[model_features]
+                else:
+                    # Fall back to using first 'expected_features' from the input
+                    features_df = features_df.iloc[:, :expected_features]
+            else:
+                # Model expects more features than provided - this shouldn't happen
+                return jsonify({'error': f'Model expects {expected_features} features but only {len(REQUIRED_FEATURES)} were provided'}), 400
+        
         # Make prediction
         prediction_prob = model.predict(features_df)[0][0]
         prediction = int(prediction_prob >= 0.5)
@@ -178,37 +180,26 @@ def predict():
 if __name__ == '__main__':
     # Load model at startup
     load_model()
+    
+    # Get and print input shape safely
+    if model is not None:
+        input_shape = model.input_shape
+        print(f"Model expects input shape: {input_shape}")
+        
+        # Check if number of input features matches REQUIRED_FEATURES
+        expected_features = input_shape[1] if len(input_shape) > 1 else None
+        if expected_features and expected_features != len(REQUIRED_FEATURES):
+            print(f"⚠️ WARNING: Model expects {expected_features} features but REQUIRED_FEATURES has {len(REQUIRED_FEATURES)}.")
+            
+            # Try to get correct feature list from training data
+            model_features = get_model_input_features()
+            if model_features:
+                print("✅ Updating REQUIRED_FEATURES to match model input shape.")
+                REQUIRED_FEATURES = model_features
+        else:
+            print("✅ Feature count matches model input shape.")
+    else:
+        print("❌ Model is not loaded. Cannot determine input shape.")
+    
     # Run the app
     app.run(debug=True, host='0.0.0.0', port=5000)
-    
-    
-# In app.py, add this debugging function
-def get_model_input_features():
-    """Determine the exact feature list required by the model"""
-    model = tf.keras.models.load_model('models/churn_model.h5')
-    input_shape = model.layers[0].input_shape
-    expected_features = input_shape[1] if len(input_shape) > 1 else input_shape[0][1]
-    print(f"Model expects {expected_features} input features")
-    
-    # Now let's attempt to determine what these features are by looking at training data
-    try:
-        train_data = pd.read_csv('data/X_train.csv')
-        feature_columns = train_data.columns.tolist()
-        print(f"Training data has {len(feature_columns)} features: {feature_columns}")
-        return feature_columns
-    except Exception as e:
-        print(f"Could not determine feature columns from training data: {str(e)}")
-        return None
-
-# Call this function when loading the app
-if __name__ == '__main__':
-    # Load model at startup
-    load_model()
-    # Get expected features
-    model_features = get_model_input_features()
-    if model_features and len(model_features) != len(REQUIRED_FEATURES):
-        print("WARNING: Feature mismatch! Updating REQUIRED_FEATURES to match model expectations.")
-        REQUIRED_FEATURES = model_features
-    # Run the app
-    app.run(debug=True, host='0.0.0.0', port=5000)
-    
