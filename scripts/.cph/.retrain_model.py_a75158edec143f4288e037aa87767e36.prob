@@ -1,0 +1,1 @@
+{"name":"Local: retrain_model","url":"c:\\Users\\Dell\\Desktop\\Cust\\E-commerce_churn\\scripts\\retrain_model.py","tests":[{"id":1737222477147,"input":"","output":""}],"interactive":false,"memoryLimit":1024,"timeLimit":3000,"srcPath":"c:\\Users\\Dell\\Desktop\\Cust\\E-commerce_churn\\scripts\\retrain_model.py","group":"local","local":true}
