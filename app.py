@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 import numpy as np
 import pandas as pd
 import tensorflow as tf
@@ -203,3 +204,16 @@ if __name__ == '__main__':
     
     # Run the app
     app.run(debug=True, host='0.0.0.0', port=5000)
+    
+@app.route('/ui')
+def ui():
+    """Serve the static HTML file"""
+    return send_from_directory('static', 'index.html')
+
+# Update your Flask app initialization to enable CORS
+# Add this import at the top
+from flask_cors import CORS
+
+# Then modify your Flask app initialization
+app = Flask(__name__)
+CORS(app)

@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>E-commerce Customer Churn Prediction</title>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f7f9fc;
+      }
+
+      .container {
+        background-color: white;
+        border-radius: 8px;
+        padding: 25px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      h1 {
+        color: #2c3e50;
+        margin-bottom: 20px;
+        text-align: center;
+      }
+
+      .form-group {
+        margin-bottom: 15px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 600;
+      }
+
+      input,
+      select {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        box-sizing: border-box;
+      }
+
+      .form-row {
+        display: flex;
+        gap: 15px;
+      }
+
+      .form-col {
+        flex: 1;
+      }
+
+      button {
+        background-color: #3498db;
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        display: block;
+        margin: 20px auto;
+        width: 200px;
+      }
+
+      button:hover {
+        background-color: #2980b9;
+      }
+
+      #result {
+        margin-top: 20px;
+        padding: 15px;
+        border-radius: 4px;
+        display: none;
+      }
+
+      .success {
+        background-color: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+      }
+
+      .error {
+        background-color: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+      }
+
+      .result-card {
+        background-color: white;
+        border-radius: 8px;
+        padding: 20px;
+        margin-top: 20px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        text-align: center;
+      }
+
+      .prediction {
+        font-size: 24px;
+        font-weight: bold;
+        margin: 15px 0;
+      }
+
+      .churn-yes {
+        color: #e74c3c;
+      }
+
+      .churn-no {
+        color: #2ecc71;
+      }
+
+      .probability {
+        font-size: 18px;
+        color: #7f8c8d;
+      }
+
+      .prob-bar-container {
+        width: 100%;
+        background-color: #ecf0f1;
+        border-radius: 10px;
+        margin: 15px 0;
+        height: 20px;
+      }
+
+      .prob-bar {
+        height: 100%;
+        border-radius: 10px;
+        background: linear-gradient(90deg, #2ecc71, #e74c3c);
+        transition: width 0.5s ease-in-out;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>E-commerce Customer Churn Prediction</h1>
+
+      <form id="churnForm">
+        <div class="form-row">
+          <div class="form-col">
+            <div class="form-group">
+              <label for="tenure">Tenure (0-1)</label>
+              <input
+                type="number"
+                id="tenure"
+                step="0.1"
+                min="0"
+                max="1"
+                value="0.5"
+                required
+              />
+            </div>
+          </div>
+          <div class="form-col">
+            <div class="form-group">
+              <label for="warehouseToHome">Warehouse To Home (0-1)</label>
+              <input
+                type="number"
+                id="warehouseToHome"
+                step="0.1"
+                min="0"
+                max="1"
+                value="0.3"
+                required
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-col">
+            <div class="form-group">
+              <label for="hourSpendOnApp">Hours Spent On App</label>
+              <input
+                type="number"
+                id="hourSpendOnApp"
+                step="0.5"
+                min="0"
+                value="2.5"
+                required
+              />
+            </div>
+          </div>
+          <div class="form-col">
+            <div class="form-group">
+              <label for="numberOfDeviceRegistered"
+                >Number Of Devices Registered</label
+              >
+              <input
+                type="number"
+                id="numberOfDeviceRegistered"
+                min="1"
+                max="10"
+                value="3"
+                required
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-col">
+            <div class="form-group">
+              <label for="satisfactionScore">Satisfaction Score (1-5)</label>
+              <input
+                type="number"
+                id="satisfactionScore"
+                min="1"
+                max="5"
+                value="4"
+                required
+              />
+            </div>
+          </div>
+          <div class="form-col">
+            <div class="form-group">
+              <label for="numberOfAddress">Number Of Addresses</label>
+              <input
+                type="number"
+                id="numberOfAddress"
+                min="1"
+                max="10"
+                value="2"
+                required
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-col">
+            <div class="form-group">
+              <label for="complain">Has Complained</label>
+              <select id="complain" required>
+                <option value="0">No</option>
+                <option value="1">Yes</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-col">
+            <div class="form-group">
+              <label for="orderAmountHike"
+                >Order Amount Hike From Last Year</label
+              >
+              <input
+                type="number"
+                id="orderAmountHike"
+                step="0.05"
+                min="0"
+                value="0.15"
+                required
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-col">
+            <div class="form-group">
+              <label for="couponUsed">Coupons Used</label>
+              <input type="number" id="couponUsed" min="0" value="2" required />
+            </div>
+          </div>
+          <div class="form-col">
+            <div class="form-group">
+              <label for="orderCount">Order Count</label>
+              <input type="number" id="orderCount" min="0" value="5" required />
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-col">
+            <div class="form-group">
+              <label for="daySinceLastOrder">Days Since Last Order (0-1)</label>
+              <input
+                type="number"
+                id="daySinceLastOrder"
+                step="0.1"
+                min="0"
+                max="1"
+                value="0.2"
+                required
+              />
+            </div>
+          </div>
+          <div class="form-col">
+            <div class="form-group">
+              <label for="cashbackAmount">Cashback Amount (0-1)</label>
+              <input
+                type="number"
+                id="cashbackAmount"
+                step="0.1"
+                min="0"
+                max="1"
+                value="0.1"
+                required
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-col">
+            <div class="form-group">
+              <label for="preferredOrderCat">Preferred Order Category</label>
+              <select id="preferredOrderCat" required>
+                <option value="Fashion">Fashion</option>
+                <option value="Grocery">Grocery</option>
+                <option value="Mobile">Mobile</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-col">
+            <div class="form-group">
+              <label for="maritalStatus">Marital Status</label>
+              <select id="maritalStatus" required>
+                <option value="Married">Married</option>
+                <option value="Single">Single</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit">Predict Churn</button>
+      </form>
+
+      <div id="result" class="result-card" style="display: none">
+        <h2>Prediction Result</h2>
+        <div id="predictionText" class="prediction"></div>
+        <div class="probability">
+          Churn Probability: <span id="probabilityValue"></span>
+        </div>
+        <div class="prob-bar-container">
+          <div id="probBar" class="prob-bar" style="width: 0%"></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      document
+        .getElementById("churnForm")
+        .addEventListener("submit", async function (e) {
+          e.preventDefault();
+
+          // Get form values
+          const tenure = parseFloat(document.getElementById("tenure").value);
+          const warehouseToHome = parseFloat(
+            document.getElementById("warehouseToHome").value
+          );
+          const hourSpendOnApp = parseFloat(
+            document.getElementById("hourSpendOnApp").value
+          );
+          const numberOfDeviceRegistered = parseInt(
+            document.getElementById("numberOfDeviceRegistered").value
+          );
+          const satisfactionScore = parseInt(
+            document.getElementById("satisfactionScore").value
+          );
+          const numberOfAddress = parseInt(
+            document.getElementById("numberOfAddress").value
+          );
+          const complain = parseInt(document.getElementById("complain").value);
+          const orderAmountHike = parseFloat(
+            document.getElementById("orderAmountHike").value
+          );
+          const couponUsed = parseInt(
+            document.getElementById("couponUsed").value
+          );
+          const orderCount = parseInt(
+            document.getElementById("orderCount").value
+          );
+          const daySinceLastOrder = parseFloat(
+            document.getElementById("daySinceLastOrder").value
+          );
+          const cashbackAmount = parseFloat(
+            document.getElementById("cashbackAmount").value
+          );
+
+          // Get preferred order category and convert to dummy variables
+          const preferredOrderCat =
+            document.getElementById("preferredOrderCat").value;
+          const preferedOrderCat_Fashion =
+            preferredOrderCat === "Fashion" ? 1 : 0;
+          const preferedOrderCat_Grocery =
+            preferredOrderCat === "Grocery" ? 1 : 0;
+          const preferedOrderCat_Mobile =
+            preferredOrderCat === "Mobile" ? 1 : 0;
+
+          // Get marital status and convert to dummy variables
+          const maritalStatus = document.getElementById("maritalStatus").value;
+          const maritalStatus_Married = maritalStatus === "Married" ? 1 : 0;
+          const maritalStatus_Single = maritalStatus === "Single" ? 1 : 0;
+
+          // Create data object for API request
+          const data = {
+            Tenure: tenure,
+            WarehouseToHome: warehouseToHome,
+            HourSpendOnApp: hourSpendOnApp,
+            NumberOfDeviceRegistered: numberOfDeviceRegistered,
+            SatisfactionScore: satisfactionScore,
+            NumberOfAddress: numberOfAddress,
+            Complain: complain,
+            OrderAmountHikeFromlastYear: orderAmountHike,
+            CouponUsed: couponUsed,
+            OrderCount: orderCount,
+            DaySinceLastOrder: daySinceLastOrder,
+            CashbackAmount: cashbackAmount,
+            PreferedOrderCat_Fashion: preferedOrderCat_Fashion,
+            PreferedOrderCat_Grocery: preferedOrderCat_Grocery,
+            PreferedOrderCat_Mobile: preferedOrderCat_Mobile,
+            MaritalStatus_Married: maritalStatus_Married,
+            MaritalStatus_Single: maritalStatus_Single,
+          };
+
+          try {
+            // You'll need to adjust this URL based on where your API is running
+            const apiUrl = "http://localhost:5000/predict";
+
+            // Make API request
+            const response = await fetch(apiUrl, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(data),
+            });
+
+            if (!response.ok) {
+              throw new Error("API request failed");
+            }
+
+            const result = await response.json();
+
+            // Display the result
+            const resultDiv = document.getElementById("result");
+            const predictionText = document.getElementById("predictionText");
+            const probabilityValue =
+              document.getElementById("probabilityValue");
+            const probBar = document.getElementById("probBar");
+
+            resultDiv.style.display = "block";
+
+            // Update the result values
+            if (result.churn_prediction === 1) {
+              predictionText.innerHTML =
+                "Customer Likely to <span class='churn-yes'>CHURN</span>";
+            } else {
+              predictionText.innerHTML =
+                "Customer Likely to <span class='churn-no'>STAY</span>";
+            }
+
+            // Format probability as percentage
+            const probability = (result.churn_probability * 100).toFixed(1);
+            probabilityValue.textContent = `${probability}%`;
+
+            // Update probability bar
+            probBar.style.width = `${probability}%`;
+
+            // Scroll to result
+            resultDiv.scrollIntoView({ behavior: "smooth" });
+          } catch (error) {
+            console.error("Error:", error);
+            alert(
+              "An error occurred while making the prediction. Please try again."
+            );
+          }
+        });
+    </script>
+  </body>
+</html>

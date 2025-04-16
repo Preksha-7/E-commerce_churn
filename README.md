@@ -167,3 +167,7 @@ To retrain the model with new data:
 ## License
 
 [MIT License](LICENSE)
+
+## Contact
+
+[prekshaupadhyay03@gmail.com] Preksha Upadhyay
