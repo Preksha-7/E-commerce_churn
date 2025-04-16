@@ -4,11 +4,13 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
-
     steps:
       # Checkout the code
       - name: Checkout Code
@@ -18,23 +20,51 @@ jobs:
       - name: Set Up Python
         uses: actions/setup-python@v3
         with:
-          python-version: "3.10"
+          python-version: "3.9"
 
       # Install dependencies
       - name: Install Dependencies
         run: pip install -r requirements.txt
 
+      # Create data and model directories
+      - name: Create Directories
+        run: |
+          mkdir -p data/raw data/processed models
+
       # Run tests
       - name: Run Tests
-        run: pytest tests/
+        run: pytest tests/ -v
+
+  build-and-push:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout the code
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      # Set up Docker Buildx
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      # Login to DockerHub
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
       # Build and push Docker image
-      - name: Docker Build and Push
-        env:
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-        run: |
-          docker build -t preksha7/ecommerce-churn-api .
-          docker tag preksha7/ecommerce-churn-api:latest preksha7/ecommerce-churn-api:latest
-          echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
-          docker push preksha7/ecommerce-churn-api:latest
+      - name: Build and Push
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          push: true
+          tags: preksha7/ecommerce-churn-api:latest
+          cache-from: type=registry,ref=preksha7/ecommerce-churn-api:latest
+          cache-to: type=inline
+
+      # Notify on successful deployment
+      - name: Notify Deployment
+        run: echo "Docker image successfully built and pushed to DockerHub"

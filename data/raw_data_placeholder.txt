@@ -1,0 +1,22 @@
+This directory is used to store the raw data files for the e-commerce churn prediction model.
+
+Expected files:
+- data_ecommerce_customer_churn.csv: The original dataset with customer information
+- latest_customer_data.csv: Updated data for model retraining
+
+Data should contain the following features:
+- Tenure
+- WarehouseToHome
+- HourSpendOnApp
+- NumberOfDeviceRegistered
+- SatisfactionScore
+- NumberOfAddress
+- Complain
+- OrderAmountHikeFromlastYear
+- CouponUsed
+- OrderCount
+- DaySinceLastOrder
+- CashbackAmount
+- PreferedOrderCat
+- MaritalStatus
+- Churn (target variable)
